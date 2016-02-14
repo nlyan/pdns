@@ -24,15 +24,15 @@ static struct RegisterOurselves
   }
 } doIt;
 
-void SelectFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)
+void SelectFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, funcparam_t parameter)
 {
   Callback cb;
-  cb.d_callback=toDo;
-  cb.d_parameter=parameter;
+  cb.d_callback=std::move(toDo);
+  cb.d_parameter=std::move(parameter);
   memset(&cb.d_ttd, 0, sizeof(cb.d_ttd));
-  if(cbmap.count(fd))
+  if (!cbmap.emplace (fd, std::move(cb)).second) {
     throw FDMultiplexerException("Tried to add fd "+std::to_string(fd)+ " to multiplexer twice");
-  cbmap[fd]=cb;
+  }
 }
 
 void SelectFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)

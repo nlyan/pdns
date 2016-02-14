@@ -27,7 +27,7 @@ public:
 
   virtual int run(struct timeval* tv);
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter);
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, funcparam_t parameter) override;
   virtual void removeFD(callbackmap_t& cbmap, int fd);
   string getName()
   {
@@ -60,9 +60,9 @@ KqueueFDMultiplexer::KqueueFDMultiplexer() : d_kevents(new struct kevent[s_maxev
     throw FDMultiplexerException("Setting up kqueue: "+stringerror());
 }
 
-void KqueueFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)
+void KqueueFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, funcparam_t parameter)
 {
-  accountingAddFD(cbmap, fd, toDo, parameter);
+  accountingAddFD(cbmap, fd, std::move(toDo), std::move(parameter));
 
   struct kevent kqevent;
   EV_SET(&kqevent, fd, (&cbmap == &d_readCallbacks) ? EVFILT_READ : EVFILT_WRITE, EV_ADD, 0,0,0);

@@ -50,15 +50,15 @@ public:
   virtual int run(struct timeval* tv) = 0;
 
   //! Add an fd to the read watch list - currently an fd can only be on one list at a time!
-  virtual void addReadFD(int fd, callbackfunc_t toDo, const funcparam_t& parameter=funcparam_t())
+  virtual void addReadFD(int fd, callbackfunc_t toDo, funcparam_t parameter=funcparam_t())
   {
-    this->addFD(d_readCallbacks, fd, toDo, parameter);
+    this->addFD(d_readCallbacks, fd, std::move(toDo), std::move (parameter));
   }
 
   //! Add an fd to the write watch list - currently an fd can only be on one list at a time!
-  virtual void addWriteFD(int fd, callbackfunc_t toDo, const funcparam_t& parameter=funcparam_t())
+  virtual void addWriteFD(int fd, callbackfunc_t toDo, funcparam_t parameter=funcparam_t())
   {
-    this->addFD(d_writeCallbacks, fd, toDo, parameter);
+    this->addFD(d_writeCallbacks, fd, std::move(toDo), std::move (parameter));
   }
 
   //! Remove an fd from the read watch list. You can't call this function on an fd that is closed already!
@@ -115,21 +115,21 @@ protected:
   typedef std::map<int, Callback> callbackmap_t;
   callbackmap_t d_readCallbacks, d_writeCallbacks;
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter)=0;
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, funcparam_t parameter)=0;
   virtual void removeFD(callbackmap_t& cbmap, int fd)=0;
   bool d_inrun;
   callbackmap_t::iterator d_iter;
 
-  void accountingAddFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter)
+  void accountingAddFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, funcparam_t parameter)
   {
     Callback cb;
-    cb.d_callback=toDo;
-    cb.d_parameter=parameter;
+    cb.d_callback=std::move(toDo);
+    cb.d_parameter=std::move(parameter);
     memset(&cb.d_ttd, 0, sizeof(cb.d_ttd));
   
-    if(cbmap.count(fd))
+    if (!cbmap.emplace(fd, std::move(cb)).second) {
       throw FDMultiplexerException("Tried to add fd "+std::to_string(fd)+ " to multiplexer twice");
-    cbmap[fd]=cb;
+    }
   }
 
   void accountingRemoveFD(callbackmap_t& cbmap, int fd) 
@@ -149,7 +149,7 @@ public:
 
   virtual int run(struct timeval* tv);
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter);
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, funcparam_t parameter) override;
   virtual void removeFD(callbackmap_t& cbmap, int fd);
   std::string getName()
   {

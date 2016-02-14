@@ -28,7 +28,7 @@ public:
 
   virtual int run(struct timeval* tv);
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter);
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, funcparam_t parameter) override;
   virtual void removeFD(callbackmap_t& cbmap, int fd);
   string getName()
   {
@@ -61,9 +61,9 @@ DevPollFDMultiplexer::DevPollFDMultiplexer()
     
 }
 
-void DevPollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter)
+void DevPollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, funcparam_t parameter)
 {
-  accountingAddFD(cbmap, fd, toDo, parameter);
+  accountingAddFD(cbmap, fd, std::move(toDo), std::move(parameter));
 
   struct pollfd devent;
   devent.fd=fd;
